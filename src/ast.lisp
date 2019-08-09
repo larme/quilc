@@ -502,16 +502,14 @@ as the reset is formally equivalent to measuring the qubit and then conditionall
          ()
          (:documentation ,docstring))
 
-       (defmethod mnemonic ((inst ,name)) (values ',mnemonic ',name)))))
+       (defmethod mnemonic ((inst ,name)) (values ,mnemonic ',name)))))
 
 (defmethod arguments ((instr simple-frame-mutation))
   (with-slots (qubits frame value)
       instr
-    (coerce (list frame value) 'vector)))
+    (vector frame value)))
 
 (defmacro define-simple-frame-mutation (name mnemonic &body body)
-  (check-type mnemonic string)
-  (check-type body list)
   (assert (= 1 (length body)))
   (expand-simple-frame-mutation-definition name mnemonic (first body)))
 
@@ -1390,7 +1388,7 @@ For example,
   (:method ((thing waveform-ref) (stream stream))
     (format stream "~A~@[(~{~A: ~A~^, ~})~]"
             (waveform-ref-name thing)
-            (mapcar (lambda (arg) (print-instruction-generic arg nil))
+            (mapcar #'print-instruction-to-string
                     (waveform-ref-args thing))))
 
   ;; Actual instructions
@@ -1401,7 +1399,7 @@ For example,
     (format stream "RESET"))
 
   (:method ((instr reset-qubit) stream)
-    (format stream "RESET ~a" (print-instruction (reset-qubit-target instr) nil)))
+    (format stream "RESET ~a" (print-instruction-to-string (reset-qubit-target instr))))
 
   (:method ((instr wait) (stream stream))
     (format stream "WAIT"))
@@ -1416,20 +1414,20 @@ For example,
 
   (:method ((instr pulse) (stream stream))
     (format stream "PULSE ~A ~A"
-            (print-instruction-generic (pulse-frame instr) nil)
-            (print-instruction-generic (pulse-waveform instr) nil)))
+            (print-instruction-to-string (pulse-frame instr))
+            (print-instruction-to-string (pulse-waveform instr))))
 
   (:method ((instr capture) (stream stream))
     (format stream "CAPTURE ~A ~A ~A"
-            (print-instruction-generic (capture-frame instr) nil)
-            (print-instruction-generic (capture-waveform instr) nil)
-            (print-instruction-generic (capture-memory-ref instr) nil)))
+            (print-instruction-to-string (capture-frame instr))
+            (print-instruction-to-string (capture-waveform instr))
+            (print-instruction-to-string (capture-memory-ref instr))))
 
   (:method ((instr raw-capture) (stream stream))
     (format stream "RAW-CAPTURE ~A ~A ~A"
-            (print-instruction-generic (raw-capture-frame instr) nil)
-            (print-instruction-generic (raw-capture-duration instr) nil)
-            (print-instruction-generic (raw-capture-memory-ref instr) nil)))
+            (print-instruction-to-string (raw-capture-frame instr))
+            (print-instruction-to-string (raw-capture-duration instr))
+            (print-instruction-to-string (raw-capture-memory-ref instr))))
 
   (:method ((instr fence) (stream stream))
     (format stream "FENCE ~{~A ~}" (mapcar (lambda (q)
@@ -1438,8 +1436,8 @@ For example,
 
   (:method ((instr delay) (stream stream))
     (format stream "DELAY ~A ~A"
-            (print-instruction-generic (delay-qubit instr) nil)
-            (print-instruction-generic (delay-duration instr) nil)))
+            (print-instruction-to-string (delay-qubit instr))
+            (print-instruction-to-string (delay-duration instr))))
 
   (:method ((instr classical-instruction) (stream stream))
     (format stream "~A~{ ~A~}"
@@ -1453,7 +1451,7 @@ For example,
 
   (:method ((instr jump-target) (stream stream))
     (format stream "LABEL ~a"
-            (print-instruction (jump-target-label instr) nil)))
+            (print-instruction-to-string (jump-target-label instr))))
 
   (:method ((instr jump) (stream stream))
     (let ((l (jump-label instr)))
@@ -1462,7 +1460,7 @@ For example,
          (format stream "JUMP {absolute address ~D}" l))
         (t
          (format stream "JUMP ~a"
-                 (print-instruction (jump-label instr) nil))))))
+                 (print-instruction-to-string (jump-label instr)))))))
 
   (:method ((instr jump-when) (stream stream))
     (let ((l (jump-label instr)))
@@ -1470,11 +1468,11 @@ For example,
         ((integerp l)
          (format stream "JUMP-WHEN {absolute address ~D} ~a"
                  l
-                 (print-instruction (conditional-jump-address instr) nil)))
+                 (print-instruction-to-string (conditional-jump-address instr))))
         (t
          (format stream "JUMP-WHEN ~a ~a"
-                 (print-instruction (jump-label instr) nil)
-                 (print-instruction (conditional-jump-address instr) nil))))))
+                 (print-instruction-to-string (jump-label instr))
+                 (print-instruction-to-string (conditional-jump-address instr)))))))
 
   (:method ((instr jump-unless) (stream stream))
     (let ((l (jump-label instr)))
@@ -1482,27 +1480,27 @@ For example,
         ((integerp l)
          (format stream "JUMP-UNLESS {absolute address ~D} ~a"
                  l
-                 (print-instruction (conditional-jump-address instr) nil)))
+                 (print-instruction-to-string (conditional-jump-address instr))))
         (t
          (format stream "JUMP-UNLESS ~a ~a"
-                 (print-instruction (jump-label instr) nil)
-                 (print-instruction (conditional-jump-address instr) nil))))))
+                 (print-instruction-to-string (jump-label instr))
+                 (print-instruction-to-string (conditional-jump-address instr)))))))
 
   (:method ((instr measure) (stream stream))
     (format stream "MEASURE ~a ~a"
-            (print-instruction (measurement-qubit instr) nil)
-            (print-instruction (measure-address instr) nil)))
+            (print-instruction-to-string (measurement-qubit instr))
+            (print-instruction-to-string (measure-address instr))))
 
   (:method ((instr measure-discard) (stream stream))
     (format stream "MEASURE ~a"
-            (print-instruction (measurement-qubit instr) nil)))
+            (print-instruction-to-string (measurement-qubit instr))))
 
   (:method ((instr application) (stream stream))
     (print-operator-description (application-operator instr) stream)
     (format stream "~@[(~{~a~^, ~})~]~{ ~a~}"
-            (mapcar (lambda (thing) (print-instruction thing nil))
+            (mapcar #'print-instruction-to-string
                     (application-parameters instr))
-            (mapcar (lambda (thing) (print-instruction thing nil))
+            (mapcar #'print-instruction-to-string
                     (application-arguments instr))))
 
   ;; The following are not actually instructions, but who cares.
@@ -1531,7 +1529,8 @@ For example,
             (gate-definition-name gate)
             (permutation-gate-definition-permutation gate)))
 
-  (:method ((thing waveform-definition) (stream stream)) ; TODO Should we really follow precedent and put these here?
+  ;; TODO Should we really follow precedent and put these here?
+  (:method ((thing waveform-definition) (stream stream))
     (format stream "DEFWAVEFORM ~a~@[(~{%~a~^, ~})~]:~%"
             (waveform-definition-name thing)
             (if (typep thing 'static-waveform-definition)
@@ -1549,35 +1548,31 @@ For example,
 
   (:method ((defn gate-calibration-definition) (stream stream))
     (format stream "DEFCAL ~a" (calibration-definition-name defn))
-    (flet ((print-thing (thing)
-             (print-instruction thing nil)))
-      (unless (endp (calibration-definition-parameters defn))
-        (format stream "(~{~a~^, ~})"
-                (mapcar #'print-thing (calibration-definition-parameters defn))))
-      (unless (endp (calibration-definition-arguments defn))
-        (format stream "~{ ~a~}"
-                (mapcar #'print-thing (calibration-definition-arguments defn))))
-      (format stream ":~%")
-      (print-instruction-sequence (calibration-definition-body defn)
-                                  :stream stream
-                                  :prefix "    ")
-      (terpri stream)))
+    (unless (endp (calibration-definition-parameters defn))
+      (format stream "(~{~a~^, ~})"
+              (mapcar #'print-instruction-to-string (calibration-definition-parameters defn))))
+    (unless (endp (calibration-definition-arguments defn))
+      (format stream "~{ ~a~}"
+              (mapcar #'print-instruction-to-string (calibration-definition-arguments defn))))
+    (format stream ":~%")
+    (print-instruction-sequence (calibration-definition-body defn)
+                                :stream stream
+                                :prefix "    ")
+    (terpri stream))
 
   (:method ((defn measure-calibration-definition) (stream stream))
     (format stream "DEFCAL ~a" (calibration-definition-name defn))
-    (flet ((print-thing (thing)
-             (print-instruction thing nil)))
-      (unless (endp (calibration-definition-arguments defn))
-        (format stream "~{ ~a~}"
-                (mapcar #'print-thing (calibration-definition-arguments defn))))
-      (unless (endp (calibration-definition-parameters defn))
-        (format stream "~{ ~a~}"
-                (mapcar #'print-thing (calibration-definition-parameters defn))))
-      (format stream ":~%")
-      (print-instruction-sequence (calibration-definition-body defn)
-                                  :stream stream
-                                  :prefix "    ")
-      (terpri stream))))
+    (unless (endp (calibration-definition-arguments defn))
+      (format stream "~{ ~a~}"
+              (mapcar #'print-instruction-to-string (calibration-definition-arguments defn))))
+    (unless (endp (calibration-definition-parameters defn))
+      (format stream "~{ ~a~}"
+              (mapcar #'print-instruction-to-string (calibration-definition-parameters defn))))
+    (format stream ":~%")
+    (print-instruction-sequence (calibration-definition-body defn)
+                                :stream stream
+                                :prefix "    ")
+    (terpri stream)))
 
 (defmethod print-object ((object instruction) stream)
   (print-unreadable-object (object stream :type nil :identity nil)
@@ -1650,10 +1645,10 @@ For example,
     (format s "DEFCIRCUIT ~a"
             (circuit-definition-name circuit-defn))
     (unless (endp (circuit-definition-parameters circuit-defn))
-      (format s "(~{~a~^, ~})" (mapcar (lambda (thing) (print-instruction thing nil))
+      (format s "(~{~a~^, ~})" (mapcar #'print-instruction-generic
                                        (circuit-definition-parameters circuit-defn))))
     (unless (endp (circuit-definition-arguments circuit-defn))
-      (format s "~{ ~a~}" (mapcar (lambda (thing) (print-instruction thing nil))
+      (format s "~{ ~a~}" (mapcar #'print-instruction-generic
                                   (circuit-definition-arguments circuit-defn))))
     (format s ":~%")
     (print-instruction-sequence (circuit-definition-body circuit-defn)
