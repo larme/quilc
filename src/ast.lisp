@@ -1645,10 +1645,10 @@ For example,
     (format s "DEFCIRCUIT ~a"
             (circuit-definition-name circuit-defn))
     (unless (endp (circuit-definition-parameters circuit-defn))
-      (format s "(~{~a~^, ~})" (mapcar #'print-instruction-generic
+      (format s "(~{~a~^, ~})" (mapcar #'print-instruction-to-string
                                        (circuit-definition-parameters circuit-defn))))
     (unless (endp (circuit-definition-arguments circuit-defn))
-      (format s "~{ ~a~}" (mapcar #'print-instruction-generic
+      (format s "~{ ~a~}" (mapcar #'print-instruction-to-string
                                   (circuit-definition-arguments circuit-defn))))
     (format s ":~%")
     (print-instruction-sequence (circuit-definition-body circuit-defn)
