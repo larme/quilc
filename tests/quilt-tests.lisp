@@ -1,6 +1,3 @@
-;;; TODO deprecate these parsing tests
-;;; (they are subsumed by the .quil example files)
-
 (in-package #:cl-quil-tests)
 
 (deftest test-gate-calibration-matching ()
@@ -37,7 +34,7 @@ MEASURE 1                               # 4
 
 
 (deftest test-measurement-calibration-matching ()
-  (let ((pp (parse-quil "
+  (let ((pp (parse-quil-into-raw-program "
 DECLARE ro BIT
 
 DEFCAL MEASURE 0:                       # 0

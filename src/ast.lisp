@@ -1434,14 +1434,17 @@ For example,
       (print-delayed-expression (delayed-expression-expression thing) stream)))
 
   (:method ((thing frame) (stream stream))
-    (format stream "~{~A ~}~A"
+    (format stream "~{~A ~}\"~A\""
             (mapcar #'print-instruction-to-string (frame-qubits thing))
             (frame-name thing)))
 
   (:method ((thing waveform-ref) (stream stream))
-    (format stream "~A~@[(~{~{~A: ~A~}~^, ~})~]"
+    (format stream "~A~@[(~{~A~^, ~})~]"
             (waveform-ref-name thing)
-            (mapcar (lambda (name-and-value) (mapcar #'print-instruction-to-string name-and-value))
+            (mapcar (lambda (name-and-value)
+                      (format nil "~A: ~A"
+                              (param-name (first name-and-value))  ; TODO: do we want to print %arg or arg
+                              (print-instruction-to-string (second name-and-value))))
                     (waveform-ref-args thing))))
 
   ;; Actual instructions

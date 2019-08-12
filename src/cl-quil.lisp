@@ -5,7 +5,8 @@
 (in-package #:cl-quil)
 
 (defvar *standard-post-process-transforms*
-  '(process-includes resolve-applications expand-circuits type-check)
+  '(process-includes resolve-applications expand-circuits
+    expand-calibrations resolve-waveform-references type-check)
   "The standard transforms that are applied by PARSE-QUIL.")
 
 (defun parse-quil (string &key originating-file (transforms *standard-post-process-transforms*))
